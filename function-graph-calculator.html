@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>函数图形计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .function-inputs {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .function-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .function-row label {
+            font-weight: 600;
+            color: #555;
+            min-width: 60px;
+        }
+
+        .function-row input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+
+        .function-row input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .color-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.add-function {
+            background: #28a745;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            display: block;
+            cursor: move;
+            width: 100%;
+            height: auto;
+        }
+
+        .coordinates {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .help-text {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .help-text h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .help-text p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 5px;
+        }
+
+        .help-text code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .zoom-controls label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .zoom-controls input[type="range"] {
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .zoom-value {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 60px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .function-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .function-row label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 函数图形计算器</h1>
+        
+        <div class="controls">
+            <div class="function-inputs" id="functionInputs">
+                <div class="function-row">
+                    <label>f₁(x) =</label>
+                    <input type="text" class="function-input" placeholder="例如: sin(x)" value="sin(x)">
+                    <div class="color-indicator" style="background-color: #ff6b6b;"></div>
+                </div>
+                <div class="function-row">
+                    <label>f₂(x) =</label>
+                    <input type="text" class="function-input" placeholder="例如: cos(x)" value="cos(x)">
+                    <div class="color-indicator" style="background-color: #4ecdc4;"></div>
+                </div>
+                <div class="function-row">
+                    <label>f₃(x) =</label>
+                    <input type="text" class="function-input" placeholder="例如: x^2" value="">
+                    <div class="color-indicator" style="background-color: #45b7d1;"></div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="drawGraph()">绘制图形</button>
+                <button onclick="clearGraph()" class="secondary">清除图形</button>
+                <button onclick="resetView()" class="secondary">重置视图</button>
+                <button onclick="addFunctionInput()" class="add-function">添加函数</button>
+            </div>
+
+            <div class="zoom-controls">
+                <label>缩放：</label>
+                <input type="range" id="zoomSlider" min="10" max="200" value="50" oninput="updateZoom(this.value)">
+                <span class="zoom-value" id="zoomValue">50</span>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="graphCanvas" width="1140" height="600"></canvas>
+            <div class="coordinates" id="coordinates">x: 0.00, y: 0.00</div>
+        </div>
+
+        <div class="help-text">
+            <h3>💡 使用说明</h3>
+            <p><strong>支持的函数：</strong> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sqrt</code>, <code>abs</code>, <code>log</code>, <code>exp</code>, <code>pow(x,n)</code></p>
+            <p><strong>运算符：</strong> <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code> (幂运算)</p>
+            <p><strong>常量：</strong> <code>pi</code>, <code>e</code></p>
+            <p><strong>示例：</strong> <code>x^2</code>, <code>sin(x) + cos(x)</code>, <code>1/x</code>, <code>sqrt(x)</code>, <code>2*sin(3*x)</code></p>
+            <p><strong>操作：</strong> 鼠标拖动平移视图，使用滚轮或滑块缩放，输入函数后点击"绘制图形"</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const coordsDisplay = document.getElementById('coordinates');
+        
+        // 图形参数
+        let scale = 50; // 每单位的像素数
+        let offsetX = canvas.width / 2;
+        let offsetY = canvas.height / 2;
+        let isDragging = false;
+        let lastX, lastY;
+
+        // 颜色数组
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#e17055', '#74b9ff'];
+
+        let functionCount = 3;
+
+        // 初始化
+        drawAxes();
+
+        // 添加函数输入框
+        function addFunctionInput() {
+            functionCount++;
+            const container = document.getElementById('functionInputs');
+            const row = document.createElement('div');
+            row.className = 'function-row';
+            
+            const subscript = functionCount;
+            const color = colors[functionCount % colors.length];
+            
+            row.innerHTML = `
+                <label>f₍${subscript}₎(x) =</label>
+                <input type="text" class="function-input" placeholder="输入函数">
+                <div class="color-indicator" style="background-color: ${color};"></div>
+            `;
+            
+            container.appendChild(row);
+        }
+
+        // 更新缩放
+        function updateZoom(value) {
+            scale = parseFloat(value);
+            document.getElementById('zoomValue').textContent = value;
+            drawGraph();
+        }
+
+        // 绘制坐标轴和网格
+        function drawAxes() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            // 垂直网格线
+            for (let x = offsetX % scale; x < canvas.width; x += scale) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // 水平网格线
+            for (let y = offsetY % scale; y < canvas.height; y += scale) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // 绘制坐标轴
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            
+            // X轴
+            ctx.beginPath();
+            ctx.moveTo(0, offsetY);
+            ctx.lineTo(canvas.width, offsetY);
+            ctx.stroke();
+            
+            // Y轴
+            ctx.beginPath();
+            ctx.moveTo(offsetX, 0);
+            ctx.lineTo(offsetX, canvas.height);
+            ctx.stroke();
+            
+            // 绘制刻度
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            // X轴刻度
+            for (let i = -20; i <= 20; i++) {
+                const x = offsetX + i * scale;
+                if (x >= 0 && x <= canvas.width && i !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, offsetY - 5);
+                    ctx.lineTo(x, offsetY + 5);
+                    ctx.stroke();
+                    if (i % 2 === 0) {
+                        ctx.fillText(i.toString(), x, offsetY + 20);
+                    }
+                }
+            }
+            
+            // Y轴刻度
+            ctx.textAlign = 'right';
+            for (let i = -20; i <= 20; i++) {
+                const y = offsetY - i * scale;
+                if (y >= 0 && y <= canvas.height && i !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX - 5, y);
+                    ctx.lineTo(offsetX + 5, y);
+                    ctx.stroke();
+                    if (i % 2 === 0) {
+                        ctx.fillText(i.toString(), offsetX - 10, y + 4);
+                    }
+                }
+            }
+        }
+
+        // 解析并计算函数
+        function evaluateFunction(expression, x) {
+            try {
+                // 替换数学函数和常量
+                let expr = expression.toLowerCase()
+                    .replace(/\^/g, '**')
+                    .replace(/pi/g, Math.PI)
+                    .replace(/e(?![a-z])/g, Math.E)
+                    .replace(/sqrt\(/g, 'Math.sqrt(')
+                    .replace(/sin\(/g, 'Math.sin(')
+                    .replace(/cos\(/g, 'Math.cos(')
+                    .replace(/tan\(/g, 'Math.tan(')
+                    .replace(/abs\(/g, 'Math.abs(')
+                    .replace(/log\(/g, 'Math.log(')
+                    .replace(/ln\(/g, 'Math.log(')
+                    .replace(/exp\(/g, 'Math.exp(')
+                    .replace(/pow\(/g, 'Math.pow(')
+                    .replace(/asin\(/g, 'Math.asin(')
+                    .replace(/acos\(/g, 'Math.acos(')
+                    .replace(/atan\(/g, 'Math.atan(')
+                    .replace(/floor\(/g, 'Math.floor(')
+                    .replace(/ceil\(/g, 'Math.ceil(')
+                    .replace(/round\(/g, 'Math.round(');
+                
+                // 使用Function构造函数安全地计算表达式
+                const func = new Function('x', `return ${expr}`);
+                const result = func(x);
+                
+                // 检查结果是否有效
+                if (isNaN(result) || !isFinite(result)) {
+                    return null;
+                }
+                
+                return result;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 绘制函数图形
+        function drawFunction(expression, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            
+            let started = false;
+            const step = 1; // 像素步长
+            
+            for (let pixelX = 0; pixelX < canvas.width; pixelX += step) {
+                // 将像素坐标转换为数学坐标
+                const mathX = (pixelX - offsetX) / scale;
+                const mathY = evaluateFunction(expression, mathX);
+                
+                if (mathY !== null) {
+                    // 将数学坐标转换回像素坐标
+                    const pixelY = offsetY - mathY * scale;
+                    
+                    // 只绘制在画布范围内的点
+                    if (pixelY >= -100 && pixelY <= canvas.height + 100) {
+                        if (!started) {
+                            ctx.moveTo(pixelX, pixelY);
+                            started = true;
+                        } else {
+                            ctx.lineTo(pixelX, pixelY);
+                        }
+                    } else {
+                        started = false;
+                        ctx.stroke();
+                        ctx.beginPath();
+                    }
+                } else {
+                    started = false;
+                    ctx.stroke();
+                    ctx.beginPath();
+                }
+            }
+            
+            ctx.stroke();
+        }
+
+        // 绘制所有图形
+        function drawGraph() {
+            drawAxes();
+            
+            const inputs = document.querySelectorAll('.function-input');
+            const colorIndicators = document.querySelectorAll('.color-indicator');
+            
+            inputs.forEach((input, index) => {
+                const expression = input.value.trim();
+                if (expression) {
+                    const color = window.getComputedStyle(colorIndicators[index]).backgroundColor;
+                    drawFunction(expression, color);
+                }
+            });
+        }
+
+        // 清除图形
+        function clearGraph() {
+            drawAxes();
+        }
+
+        // 重置视图
+        function resetView() {
+            offsetX = canvas.width / 2;
+            offsetY = canvas.height / 2;
+            scale = 50;
+            document.getElementById('zoomSlider').value = 50;
+            document.getElementById('zoomValue').textContent = '50';
+            drawGraph();
+        }
+
+        // 鼠标事件处理
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.offsetX;
+            lastY = e.offsetY;
+            canvas.style.cursor = 'grabbing';
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            // 更新坐标显示
+            const mathX = (e.offsetX - offsetX) / scale;
+            const mathY = (offsetY - e.offsetY) / scale;
+            coordsDisplay.textContent = `x: ${mathX.toFixed(2)}, y: ${mathY.toFixed(2)}`;
+            
+            // 处理拖动
+            if (isDragging) {
+                const dx = e.offsetX - lastX;
+                const dy = e.offsetY - lastY;
+                
+                offsetX += dx;
+                offsetY += dy;
+                
+                lastX = e.offsetX;
+                lastY = e.offsetY;
+                
+                drawGraph();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'move';
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            canvas.style.cursor = 'move';
+        });
+
+        // 鼠标滚轮缩放
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+            
+            // 计算鼠标位置的数学坐标
+            const mathX = (mouseX - offsetX) / scale;
+            const mathY = (offsetY - mouseY) / scale;
+            
+            // 更新缩放
+            scale *= zoomFactor;
+            scale = Math.max(10, Math.min(200, scale));
+            
+            // 调整偏移量以保持鼠标位置不变
+            offsetX = mouseX - mathX * scale;
+            offsetY = mouseY + mathY * scale;
+            
+            // 更新滑块
+            document.getElementById('zoomSlider').value = Math.round(scale);
+            document.getElementById('zoomValue').textContent = Math.round(scale);
+            
+            drawGraph();
+        });
+
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                drawGraph();
+            }
+        });
+
+        // 初始绘制
+        window.onload = () => {
+            drawGraph();
+        };
+
+        // 响应式调整
+        window.addEventListener('resize', () => {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            if (containerWidth < canvas.width) {
+                const ratio = canvas.height / canvas.width;
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+            }
+        });
+    </script>
+</body>
+</html>
